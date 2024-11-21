@@ -1,92 +1,130 @@
-# Tuto
+# Connect to Eduroam using Raspberry Pi
 
+This repository provides a step-by-step configuration to connect your Raspberry Pi to the **Eduroam** Wi-Fi network using **wpa_supplicant** and a custom `interfaces` configuration.
 
+## Table of Contents
 
-## Getting started
+- [Introduction](#introduction)
+- [Files Overview](#files-overview)
+- [Configuration Steps](#configuration-steps)
+- [Customizing Configuration](#customizing-configuration)
+- [Troubleshooting](#troubleshooting)
+- [License](#license)
 
-To make it easy for you to get started with GitLab, here's a list of recommended next steps.
+---
 
-Already a pro? Just edit this README.md and make it your own. Want to make it easy? [Use the template at the bottom](#editing-this-readme)!
+## Introduction
 
-## Add your files
+Eduroam is a Wi-Fi service that allows students, researchers, and staff of participating institutions to connect to secure Wi-Fi networks globally. This repository provides two configuration files for setting up Eduroam on a **Raspberry Pi**: `interfaces` for network configuration and `wpa_supplicant.conf` for the Eduroam-specific settings.
 
-- [ ] [Create](https://docs.gitlab.com/ee/user/project/repository/web_editor.html#create-a-file) or [upload](https://docs.gitlab.com/ee/user/project/repository/web_editor.html#upload-a-file) files
-- [ ] [Add files using the command line](https://docs.gitlab.com/ee/gitlab-basics/add-file.html#add-a-file-using-the-command-line) or push an existing Git repository with the following command:
+---
 
+## Files Overview
+
+There are two essential configuration files in this repository:
+
+1. **`interfaces`**: This file configures the network interfaces on your Raspberry Pi (eth0 and wlan0).
+2. **`wpa_supplicant.conf`**: This file contains the Wi-Fi settings, including authentication methods for connecting to Eduroam.
+
+### `interfaces` File :
+
+```bash
+auto lo
+iface lo inet loopback
+
+auto eth0
+allow-hotplug eth0
+iface eth0 inet manual
+
+auto wlan0
+allow-hotplug wlan0
+iface wlan0 inet manual
+wpa-roam /etc/wpa_supplicant/wpa_supplicant.conf
+iface default inet dhcp
 ```
-cd existing_repo
-git remote add origin http://git.unilim.fr/odabasioglu1/tuto.git
-git branch -M main
-git push -uf origin main
+
+eth0: Configured for manual IP addressing (not used in this case but allows Ethernet fallback).
+wlan0: Configured for wireless connectivity using wpa_supplicant.
+
+### `wpa_supplicant.conf` File :
+```bash
+ctrl_interface=DIR=/var/run/wpa_supplicant GROUP=netdev
+update_config=1
+country=FR
+
+network={
+	ssid="eduroam"
+	key_mgmt=WPA-EAP
+	pairwise=CCMP
+	eap=TTLS
+	identity=YOUR_UNIVERSITY_ID
+	anonymous_identity="anonymous@unilim.fr"
+	password=YOUR_PASSWORD
+	ca_cert="/home/pi/.cat_installer/ca.pem"
+	altsubject_match="DNS:wifi-ttls.unilim.fr"
+	phase2="auth=MSCHAPV2"
+}
+```
+country: Set to France (FR), adjust according to your location.
+
+ssid: Network name (eduroam).
+
+eap: Set to TTLS for Eduroam.
+
+identity: Your institution-specific username (replace YOUR_UNIVERSITY_ID).
+
+password: Your Eduroam password (replace YOUR_PASSWORD).
+
+ca_cert: Path to the certificate used for secure connection.
+
+phase2: Specifies the secondary authentication phase (MSCHAPV2).
+
+
+## Configuration Steps
+
+### Clone the repository:
+```bash
+git clone https://github.com/yourusername/connecttoeduroamusingraspberrypi.git
+cd connecttoeduroamusingraspberrypi
 ```
 
-## Integrate with your tools
+### Update the interfaces file:
 
-- [ ] [Set up project integrations](http://git.unilim.fr/odabasioglu1/tuto/-/settings/integrations)
+#### Place the interfaces file in /etc/network/:
+```bash
+sudo cp interfaces /etc/network/
+```
 
-## Collaborate with your team
+### Update the wpa_supplicant.conf file:
 
-- [ ] [Invite team members and collaborators](https://docs.gitlab.com/ee/user/project/members/)
-- [ ] [Create a new merge request](https://docs.gitlab.com/ee/user/project/merge_requests/creating_merge_requests.html)
-- [ ] [Automatically close issues from merge requests](https://docs.gitlab.com/ee/user/project/issues/managing_issues.html#closing-issues-automatically)
-- [ ] [Enable merge request approvals](https://docs.gitlab.com/ee/user/project/merge_requests/approvals/)
-- [ ] [Automatically merge when pipeline succeeds](https://docs.gitlab.com/ee/user/project/merge_requests/merge_when_pipeline_succeeds.html)
+#### Place the wpa_supplicant.conf file in /etc/wpa_supplicant/:
+```bash
+sudo cp wpa_supplicant.conf /etc/wpa_supplicant/
+```
 
-## Test and Deploy
+#### Edit the wpa_supplicant.conf:
 
-Use the built-in continuous integration in GitLab.
+Open the file with a text editor and replace YOUR_UNIVERSITY_ID and YOUR_PASSWORD with your actual credentials.
+```bash
+sudo nano /etc/wpa_supplicant/wpa_supplicant.conf
+```
+#### Reboot your Raspberry Pi:
 
-- [ ] [Get started with GitLab CI/CD](https://docs.gitlab.com/ee/ci/quick_start/index.html)
-- [ ] [Analyze your code for known vulnerabilities with Static Application Security Testing(SAST)](https://docs.gitlab.com/ee/user/application_security/sast/)
-- [ ] [Deploy to Kubernetes, Amazon EC2, or Amazon ECS using Auto Deploy](https://docs.gitlab.com/ee/topics/autodevops/requirements.html)
-- [ ] [Use pull-based deployments for improved Kubernetes management](https://docs.gitlab.com/ee/user/clusters/agent/)
-- [ ] [Set up protected environments](https://docs.gitlab.com/ee/ci/environments/protected_environments.html)
+    sudo reboot
 
-***
+After rebooting, your Raspberry Pi should automatically connect to the Eduroam network.
+## Customizing Configuration
 
-# Editing this README
+    Identity: Replace YOUR_UNIVERSITY_ID with your actual university or institution login (e.g., johndoe@university.edu).
+    Password: Replace YOUR_PASSWORD with your actual Eduroam password.
+    Country: Set the country code (country=FR) to match your region if you're outside of France.
 
-When you're ready to make this README your own, just edit this file and use the handy template below (or feel free to structure it however you want - this is just a starting point!).  Thank you to [makeareadme.com](https://www.makeareadme.com/) for this template.
+## Troubleshooting
 
-## Suggestions for a good README
-Every project is different, so consider which of these sections apply to yours. The sections used in the template are suggestions for most open source projects. Also keep in mind that while a README can be too long and detailed, too long is better than too short. If you think your README is too long, consider utilizing another form of documentation rather than cutting out information.
-
-## Name
-Choose a self-explaining name for your project.
-
-## Description
-Let people know what your project can do specifically. Provide context and add a link to any reference visitors might be unfamiliar with. A list of Features or a Background subsection can also be added here. If there are alternatives to your project, this is a good place to list differentiating factors.
-
-## Badges
-On some READMEs, you may see small images that convey metadata, such as whether or not all the tests are passing for the project. You can use Shields to add some to your README. Many services also have instructions for adding a badge.
-
-## Visuals
-Depending on what you are making, it can be a good idea to include screenshots or even a video (you'll frequently see GIFs rather than actual videos). Tools like ttygif can help, but check out Asciinema for a more sophisticated method.
-
-## Installation
-Within a particular ecosystem, there may be a common way of installing things, such as using Yarn, NuGet, or Homebrew. However, consider the possibility that whoever is reading your README is a novice and would like more guidance. Listing specific steps helps remove ambiguity and gets people to using your project as quickly as possible. If it only runs in a specific context like a particular programming language version or operating system or has dependencies that have to be installed manually, also add a Requirements subsection.
-
-## Usage
-Use examples liberally, and show the expected output if you can. It's helpful to have inline the smallest example of usage that you can demonstrate, while providing links to more sophisticated examples if they are too long to reasonably include in the README.
-
-## Support
-Tell people where they can go to for help. It can be any combination of an issue tracker, a chat room, an email address, etc.
-
-## Roadmap
-If you have ideas for releases in the future, it is a good idea to list them in the README.
-
-## Contributing
-State if you are open to contributions and what your requirements are for accepting them.
-
-For people who want to make changes to your project, it's helpful to have some documentation on how to get started. Perhaps there is a script that they should run or some environment variables that they need to set. Make these steps explicit. These instructions could also be useful to your future self.
-
-You can also document commands to lint the code or run tests. These steps help to ensure high code quality and reduce the likelihood that the changes inadvertently break something. Having instructions for running tests is especially helpful if it requires external setup, such as starting a Selenium server for testing in a browser.
-
-## Authors and acknowledgment
-Show your appreciation to those who have contributed to the project.
+    Wi-Fi connection fails: Ensure your device supports WPA-EAP and TTLS, and check that the correct ca_cert file path is used.
+    Error messages related to authentication: Double-check that the correct credentials are placed in the wpa_supplicant.conf file, especially the identity and password fields.
 
 ## License
-For open source projects, say how it is licensed.
 
-## Project status
-If you have run out of energy or time for your project, put a note at the top of the README saying that development has slowed down or stopped completely. Someone may choose to fork your project or volunteer to step in as a maintainer or owner, allowing your project to keep going. You can also make an explicit request for maintainers.
+This repository is licensed under the MIT License.
+
